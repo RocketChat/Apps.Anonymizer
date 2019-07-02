@@ -1,0 +1,48 @@
+import { ISetting, SettingType } from '@rocket.chat/apps-engine/definition/settings';
+export const settings: Array<ISetting> = [
+    {
+        id: 'Members_Room_Name',
+        type: SettingType.STRING,
+        packageValue: '',
+        required: true,
+        public: false,
+        i18nLabel: 'Members_Room_Name',
+        i18nDescription: 'Members_Room_Name_Description',
+    },
+    {
+        id: 'Post_Room_Name',
+        type: SettingType.STRING,
+        packageValue: '',
+        required: true,
+        public: false,
+        i18nLabel: 'Post_Room_Name',
+        i18nDescription: 'Post_Room_Name_Description',
+    },
+    {
+        id: 'Bot_Username',
+        type: SettingType.STRING,
+        packageValue: 'rocket.cat',
+        required: true,
+        public: false,
+        i18nLabel: 'Bot_Username',
+        i18nDescription: 'Bot_Username_Description',
+    },
+    {
+        id: 'Bot_Alias',
+        type: SettingType.STRING,
+        packageValue: 'Anonymous',
+        required: true,
+        public: false,
+        i18nLabel: 'Bot_Alias',
+        i18nDescription: 'Bot_Alias_Description',
+    },
+    {
+        id: 'Bot_Emoji_Avatar',
+        type: SettingType.STRING,
+        packageValue: ':bust_in_silhouette:',
+        required: true,
+        public: false,
+        i18nLabel: 'Bot_Emoji_Avatar',
+        i18nDescription: 'Bot_Emoji_Avatar_Description',
+    },
+];

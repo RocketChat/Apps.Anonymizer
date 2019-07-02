@@ -1,0 +1,15 @@
+{
+    "id": "ce0e318b-ffc0-4ce4-832b-f1b464beb22a",
+    "version": "0.0.1",
+    "requiredApiVersion": "^1.4.0",
+    "iconFile": "icon.png",
+    "author": {
+        "name": "Marcelo Schmidt",
+        "homepage": "https://github.com/marceloschmidt",
+        "support": "https://github.com/marceloschmidt/rocketchat-anonymizer/issues"
+    },
+    "name": "Anonymizer",
+    "nameSlug": "anonymizer",
+    "classFile": "AnonymizerApp.ts",
+    "description": "Anonymizer will replay every direct message to a given room"
+}

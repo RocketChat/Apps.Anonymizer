@@ -1,0 +1,12 @@
+{
+    "Bot_Alias": "Bot Alias",
+    "Bot_Alias_Description": "Bot alias to send messages as",
+    "Bot_Emoji_Avatar": "Bot Avatar (emoji)",
+    "Bot_Emoji_Avatar_Description": "Emoji to use as avatar for bot",
+    "Bot_Username": "Bot Username",
+    "Bot_Username_Description": "The username who'll send the messages",
+    "Members_Room_Name": "Members Room Name",
+    "Members_Room_Name_Description": "The room name to get members from",
+    "Post_Room_Name": "Room Name",
+    "Post_Room_Name_Description": "The room name to post messages to"
+}
