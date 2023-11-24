@@ -1,13 +1,24 @@
-import { IAppAccessors, IConfigurationExtend, IConfigurationModify, IEnvironmentRead, IHttp, ILogger, IModify, IPersistence, IRead } from '@rocket.chat/apps-engine/definition/accessors';
+import { 
+    IAppAccessors,
+    IConfigurationExtend,
+    IConfigurationModify,
+    IEnvironmentRead,
+    IHttp,
+    ILogger,
+    IModify,
+    IPersistence,
+    IRead
+} from '@rocket.chat/apps-engine/definition/accessors';
 import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IMessage, IPostMessageSent } from '@rocket.chat/apps-engine/definition/messages';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
 import { IRoom, RoomType } from '@rocket.chat/apps-engine/definition/rooms';
 import { ISetting } from '@rocket.chat/apps-engine/definition/settings';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
-import { getMembers, sendMessage } from './helpers';
-import { MembersCache } from './MembersCache';
 import { settings } from './settings';
+import { MembersCache } from './src/cache/MembersCache';
+import { sendMessage } from './src/helpers/helpers';
+import { ESettings } from './src/@types/Settings';
 
 export class Anonymizer extends App implements IPostMessageSent {
     /**
@@ -72,20 +83,14 @@ export class Anonymizer extends App implements IPostMessageSent {
         this.membersRoomName = await environmentRead.getSettings().getValueById('Members_Room_Name');
         if (this.membersRoomName) {
             this.membersRoom = await this.getAccessors().reader.getRoomReader().getByName(this.membersRoomName) as IRoom;
-        } else {
-            return false;
         }
         this.postRoomName = await environmentRead.getSettings().getValueById('Post_Room_Name');
         if (this.postRoomName) {
             this.postRoom = await this.getAccessors().reader.getRoomReader().getByName(this.postRoomName) as IRoom;
-        } else {
-            return false;
         }
         this.botUsername = await environmentRead.getSettings().getValueById('Bot_Username');
         if (this.botUsername) {
             this.botUser = await this.getAccessors().reader.getUserReader().getByUsername(this.botUsername) as IUser;
-        } else {
-            return false;
         }
         return true;
     }
@@ -98,33 +103,102 @@ export class Anonymizer extends App implements IPostMessageSent {
      * @param read
      * @param http
      */
-    public async onSettingUpdated(setting: ISetting, configModify: IConfigurationModify, read: IRead, http: IHttp): Promise<void> {
+    public async onSettingUpdated(
+        setting: ISetting,
+        _configModify: IConfigurationModify,
+        _read: IRead,
+        _http: IHttp
+    ): Promise<void> {
         switch (setting.id) {
-            case 'Members_Room_Name':
+            case ESettings.MembersRoomName:
                 this.membersRoomName = setting.value;
                 if (this.membersRoomName) {
                     this.membersRoom = await this.getAccessors().reader.getRoomReader().getByName(this.membersRoomName) as IRoom;
                 }
                 break;
-            case 'Post_Room_Name':
+            case ESettings.PostRoomName:
                 this.postRoomName = setting.value;
                 if (this.postRoomName) {
                     this.postRoom = await this.getAccessors().reader.getRoomReader().getByName(this.postRoomName) as IRoom;
                 }
                 break;
-            case 'Bot_User':
+            case ESettings.BotUser:
                 this.botUsername = setting.value;
                 if (this.botUsername) {
                     this.botUser = await this.getAccessors().reader.getUserReader().getByUsername(this.botUsername) as IUser;
                 }
                 break;
-            case 'Bot_Alias':
+            case ESettings.BotAlias:
                 this.botName = setting.value;
                 break;
-            case 'Bot_Emoji_Avatar':
+            case ESettings.BotEmojiAvatar:
                 this.botEmojiAvatar = setting.value;
                 break;
         }
+    }
+    public async getSettingValue (id: ESettings) {
+        return this.getAccessors().reader
+            .getEnvironmentReader()
+            .getSettings()
+            .getById(id)
+    } 
+
+    public async getRoomInfo() {
+        const reader = this.getAccessors().reader;
+    
+        const getRoom = async (roomName: string) => await reader
+            .getRoomReader()
+            .getByName(roomName);
+        
+        if (!this.membersRoom) {
+            const membersSettingsName = (await this.getSettingValue(ESettings.MembersRoomName)).value;
+            this.membersRoom = await getRoom(membersSettingsName) as IRoom;
+        }
+        const roomMembers = this.membersRoom ? await reader.getRoomReader().getMembers(this.membersRoom.id as string) : [];
+    
+        if (!this.postRoom) {
+            const postRoomName = (await this.getSettingValue(ESettings.PostRoomName)).value;
+            this.postRoom = await getRoom(postRoomName) as IRoom;
+        }
+    
+        return {
+            membersRoom: this.membersRoom,
+            roomMembers,
+            postRoom: this.postRoom
+        };
+    }
+
+    public async getBotInfo() {
+        const reader = this.getAccessors().reader;
+    
+        const getUser = async (username: string) => await reader
+            .getUserReader()
+            .getByUsername(username);
+        
+        if (!this.botUsername) {
+            this.botUsername = (await this.getSettingValue(ESettings.BotUser)).value;
+        }
+        let botUser = this.botUser
+
+        if (!botUser) {
+            botUser = await getUser(this.botUsername);
+        }
+    
+        if (!this.botName) {
+            this.botName = (await this.getSettingValue(ESettings.BotAlias)).value;
+        }
+        const botAlias = this.botName;
+    
+        if (!this.botEmojiAvatar) {
+            this.botEmojiAvatar = (await this.getSettingValue(ESettings.BotEmojiAvatar)).value;
+        }
+        const botAvatar = this.botEmojiAvatar;
+    
+        return {
+            botUser,
+            botAlias,
+            botAvatar
+        };
     }
 
     /**
@@ -133,12 +207,15 @@ export class Anonymizer extends App implements IPostMessageSent {
      * @param message
      */
     public async checkPostMessageSent(message: IMessage): Promise<boolean> {
-        return this.botUser !== undefined &&
-            this.postRoom !== undefined &&
-            this.membersRoom !== undefined &&
+        const { botUser } = await this.getBotInfo()
+        const { membersRoom, postRoom } = await this.getRoomInfo()
+
+        return botUser !== undefined &&
+            postRoom !== undefined &&
+            membersRoom !== undefined &&
             message.room.type === RoomType.DIRECT_MESSAGE && // Only respond to direct messages
-            message.sender.id !== this.botUser.id && // Do not respond to bot self message
-            message.room.id.indexOf(this.botUser.id) !== -1; // Bot has to be part of the direct room
+            message.sender.id !== botUser.id && // Do not respond to bot self message
+            message.room.id.indexOf(botUser.id) !== -1; // Bot has to be part of the direct room
     }
 
     /**
@@ -150,13 +227,23 @@ export class Anonymizer extends App implements IPostMessageSent {
      * @param persistence
      * @param modify
      */
-    public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp, persistence: IPersistence, modify: IModify): Promise<void> {
-        const member = (await getMembers(this, read))
+    public async executePostMessageSent(
+        message: IMessage, 
+        _read: IRead,
+        _http: IHttp,
+        _persistence: IPersistence,
+        modify: IModify
+    ): Promise<void> {
+        const { postRoom, roomMembers } = await this.getRoomInfo()
+
+        if(!postRoom) {
+            throw new Error('Unable to find room')
+        }
+
+        const member = roomMembers
             .filter((m) => m.username === message.sender.username);
         if (member && member.length > 0) {
-            sendMessage(this, modify, this.postRoom, message.text as string);
-        } else {
-            console.log(member);
+            sendMessage(this, modify, postRoom, message.text as string);
         }
     }
 
