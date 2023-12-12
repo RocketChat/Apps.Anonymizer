@@ -6,7 +6,7 @@
     "author": {
         "name": "Rocket.Chat",
         "homepage": "https://rocket.chat",
-        "support": "suporte@rocket.chat"
+        "support": "support@rocket.chat"
     },
     "name": "Anonymizer",
     "nameSlug": "anonymizer",
