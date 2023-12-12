@@ -2,8 +2,8 @@ import { IModify, IRead } from '@rocket.chat/apps-engine/definition/accessors';
 import { IMessageAttachment } from '@rocket.chat/apps-engine/definition/messages';
 import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
 import { IUser } from '@rocket.chat/apps-engine/definition/users';
-import { Anonymizer } from './AnonymizerApp';
-import { MembersCache } from './MembersCache';
+import { Anonymizer } from '../../AnonymizerApp';
+import { MembersCache } from '../cache/MembersCache';
 
 /**
  * Gets users of room defined by room id setting
@@ -13,7 +13,7 @@ import { MembersCache } from './MembersCache';
  * @param read
  * @returns array of users
  */
-export async function getMembers(app: Anonymizer, read: IRead): Promise<Array<IUser>> {
+export async function getMembers(app: Anonymizer): Promise<Array<IUser>> {
     // Gets cached members if expire date is still valid
     if (app.membersCache && app.membersCache.isValid()) {
         return app.membersCache.members;
@@ -21,7 +21,7 @@ export async function getMembers(app: Anonymizer, read: IRead): Promise<Array<IU
     let members;
     if (app.membersRoom) {
         try {
-            members = await read.getRoomReader().getMembers(app.membersRoom.id);
+            members = (await app.getRoomInfo()).roomMembers;
         } catch (error) {
             app.getLogger().log(error);
         }
